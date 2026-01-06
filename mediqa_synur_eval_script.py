@@ -120,6 +120,9 @@ def json_values_equal(observed, expected):
 
 
 def unroll_observations(obs_list):
+    if isinstance(obs_list, str):
+        obs_list = json.loads(obs_list)
+
     obs_dict = {}
     for obs in obs_list:
         if obs['id'] not in obs_dict:
