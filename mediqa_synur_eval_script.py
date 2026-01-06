@@ -195,6 +195,10 @@ def main():
     for id in reference:
         if id in candidates:
             classified_obs = classify_observations(classified_obs, candidates[id], reference[id])
+        else:
+            # Handle case where there are no predictions for this id
+            for obs in reference[id]['observations']:
+                classified_obs.fn_obs.append(obs)
     final_results = ClassificationStats()
     final_results.calc(classified_obs)
 
