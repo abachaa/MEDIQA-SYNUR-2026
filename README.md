@@ -42,6 +42,10 @@ Evaluation
 
 Evaluation script is available at: https://github.com/abachaa/MEDIQA-SYNUR-2026/blob/main/mediqa_synur_eval_script.py 
 
+Example of execution:
+
+  python mediqa_synur_eval_script.py -r ref.jsonl -p pred.jsonl -o output/
+
 Schedule
 -------
 
