@@ -1,0 +1,1 @@
+command: python3 evaluate.py -r /app/input/ref/ref.jsonl -p /app/input/res/pred.jsonl -o /app/output/
