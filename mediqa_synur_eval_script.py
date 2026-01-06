@@ -1,17 +1,19 @@
 import os
-from pydantic import BaseModel
-import argparse
 import json
+import argparse
+from dataclasses import dataclass, field
 
-class ClassifiedObs(BaseModel):
+
+@dataclass
+class ClassifiedObs:
     """
     Observations according to their classification results.
     """
 
-    tp_obs: list = []
-    fp_obs: list = []
-    fn_obs: list = []
-    sub_obs: list = []
+    tp_obs: list = field(default_factory=list)
+    fp_obs: list = field(default_factory=list)
+    fn_obs: list = field(default_factory=list)
+    sub_obs: list = field(default_factory=list)
 
     def __add__(self, other):
         return ClassifiedObs(
@@ -22,8 +24,8 @@ class ClassifiedObs(BaseModel):
         )
 
 
-
-class ClassificationStats(BaseModel):
+@dataclass
+class ClassificationStats:
     precision: float = 0.0
     recall: float = 0.0
     f1: float = 0.0
@@ -58,6 +60,7 @@ class ClassificationStats(BaseModel):
         except ZeroDivisionError:
             self.f1 = 0.0
 
+
 def json_values_equal(observed, expected):
     # If types mismatch, we can stop right away, unless we're dealing
     # with numerics, which we can coerce for scoring purposes
@@ -88,7 +91,7 @@ def json_values_equal(observed, expected):
     elif isinstance(expected, bool):
         return bool(observed) == bool(expected)
     elif expected is None or not expected:
-        return True  
+        return True
     elif isinstance(expected, dict):
         # Check keys
         observed_keys = list(observed.keys())
@@ -115,6 +118,7 @@ def json_values_equal(observed, expected):
     else:
         raise ValueError(f'Something went wrong in json_values_equal: {observed}, {expected}')
 
+
 def unroll_observations(obs_list):
     obs_dict = {}
     for obs in obs_list:
@@ -132,6 +136,7 @@ def unroll_observations(obs_list):
             else:
                 obs_dict[obs['id']].append(obs)
     return obs_dict
+
 
 def classify_observations(classified_obs, predicted_by_ids, expected_by_ids):
     predicted_by_ids_dict = unroll_observations(predicted_by_ids['observations'])
