@@ -1,3 +1,4 @@
+import os
 from pydantic import BaseModel
 import argparse
 import json
@@ -10,13 +11,16 @@ class ClassifiedObs(BaseModel):
     tp_obs: list = []
     fp_obs: list = []
     fn_obs: list = []
+    sub_obs: list = []
 
     def __add__(self, other):
         return ClassifiedObs(
             tp_obs=self.tp_obs + other.tp_obs,
             fp_obs=self.fp_obs + other.fp_obs,
-            fn_obs=self.fn_obs + other.fn_obs
+            fn_obs=self.fn_obs + other.fn_obs,
+            sub_obs=self.sub_obs + other.sub_obs,
         )
+
 
 
 class ClassificationStats(BaseModel):
@@ -55,6 +59,8 @@ class ClassificationStats(BaseModel):
             self.f1 = 0.0
 
 def json_values_equal(observed, expected):
+    # If types mismatch, we can stop right away, unless we're dealing
+    # with numerics, which we can coerce for scoring purposes
     observed_is_numeric = isinstance(observed, int) or isinstance(observed, float)
     expected_is_numeric = isinstance(expected, int) or isinstance(expected, float)
     if (
@@ -64,8 +70,17 @@ def json_values_equal(observed, expected):
         return False
     # Check types
     if isinstance(expected, str):
+        # There might be some string comparison rabbit hole here vs C# - check
+
+        # If the observed is a single list of 1 string, convert to string
         if isinstance(observed, list) and len(observed) == 1 and isinstance(observed[0], str):
             observed = observed[0]
+
+        # If expected is spelled-out 'Fahrenheit' or 'Celsius', convert to 'F' or 'C'
+        if expected.lower() == 'fahrenheit':
+            expected = 'F'
+        elif expected.lower() == 'celsius':
+            expected = 'C'
 
         return observed == expected
     elif isinstance(expected, int) or isinstance(expected, float):
@@ -99,7 +114,7 @@ def json_values_equal(observed, expected):
         return True
     else:
         raise ValueError(f'Something went wrong in json_values_equal: {observed}, {expected}')
-    
+
 def unroll_observations(obs_list):
     obs_dict = {}
     for obs in obs_list:
@@ -139,7 +154,7 @@ def classify_observations(classified_obs, predicted_by_ids, expected_by_ids):
                 classified_obs.fp_obs.append(predicted_observation)
             else:
                 expected_by_ids_dict[ids].remove(matching_exp)
-                
+
     for obs_id, expected_obs in expected_by_ids_dict.items():
         for ob in expected_obs:
             classified_obs.fn_obs.append(ob)
@@ -147,14 +162,15 @@ def classify_observations(classified_obs, predicted_by_ids, expected_by_ids):
     return classified_obs
 
 
-_doc__ = """
+__doc__ = """
 script to calculate scores for MEDIQA-SYNUR challenge
 """
 def main():
 
-    parser = argparse.ArgumentParser(description=_doc__, formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument("-i", "--reference", help="input .json of reference observations")
-    parser.add_argument("-o", "--predicted", help="input .json of predicted observations") 
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument("-r", "--reference", help="input .json of reference observations", required=True)
+    parser.add_argument("-p", "--predicted", help="input .json of predicted observations", required=True)
+    parser.add_argument("-o", "--output", help="output metrics file", default=None)
     args = parser.parse_args()
     reference = {}
     with open(args.reference, 'r') as handle:
@@ -173,9 +189,19 @@ def main():
             classified_obs = classify_observations(classified_obs, candidates[id], reference[id])
     final_results = ClassificationStats()
     final_results.calc(classified_obs)
+
+    print("Final Results:")
     print(final_results.precision)
     print(final_results.recall)
     print(final_results.f1)
+
+    if args.output is not None:
+        outfile = os.path.join(args.output, "scores.json")
+        print("Writing results to ", outfile)
+
+        out_dict = {k: v for k, v in final_results.__dict__.items() if not k.startswith('_')}
+        with open(outfile, 'w') as out_handle:
+            json.dump(out_dict, out_handle)
 
 if __name__ == "__main__":
     main()
