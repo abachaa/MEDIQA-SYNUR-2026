@@ -44,7 +44,7 @@ Evaluation script is available at: https://github.com/abachaa/MEDIQA-SYNUR-2026/
 
 Example of execution:
 
-  python mediqa_synur_eval_script.py -r ref.jsonl -p pred.jsonl -o output/
+    python mediqa_synur_eval_script.py -r ref.jsonl -p pred.jsonl -o output/
 
 Schedule
 -------
